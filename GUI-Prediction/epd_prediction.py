@@ -87,40 +87,34 @@ regr3 = RandomForestRegressor()
 #X_test = sc.transform(X_test)#
 
 # 训练随机森林解决回归问题
-from sklearn.ensemble import RandomForestRegressor
+def runPrediction(pred_data=None):
+    from sklearn.ensemble import RandomForestRegressor
 
-regressor = RandomForestRegressor(n_estimators=200, random_state=0)
-regressor.fit(X_train, y_train)
-#y_pred = regressor.predict(X_test)
+    regressor = RandomForestRegressor(n_estimators=200, random_state=0)
+    regressor.fit(X_train, y_train)
+    # y_pred = regressor.predict(X_test)
 
-regressor1 = RandomForestRegressor(n_estimators=200, random_state=0)
-regressor1.fit(X1_train, y1_train)
+    regressor1 = RandomForestRegressor(n_estimators=200, random_state=0)
+    regressor1.fit(X1_train, y1_train)
 
-regressor2 = RandomForestRegressor(n_estimators=200, random_state=0)
-regressor2.fit(X2_train, y2_train)
+    regressor2 = RandomForestRegressor(n_estimators=200, random_state=0)
+    regressor2.fit(X2_train, y2_train)
 
-regressor3 = RandomForestRegressor(n_estimators=200, random_state=0)
-regressor3.fit(X3_train, y3_train)
+    regressor3 = RandomForestRegressor(n_estimators=200, random_state=0)
+    regressor3.fit(X3_train, y3_train)
 
-pred_data = pd.read_excel("EPD-prediction.xlsx")
-new_y_pred = regressor.predict(pred_data)
-print('GWP-100-Total=', round((new_y_pred[0]),2))
+    # pred_data = pd.read_excel("EPD-prediction.xlsx")
+    new_y_pred = regressor.predict(pred_data)
+    print('GWP-100-Total=', round((new_y_pred[0]), 2))
 
-new_y1_pred = regressor1.predict(pred_data)
-print('GWP-100-A1 =', round((new_y1_pred[0]),2))
+    new_y1_pred = regressor1.predict(pred_data)
+    print('GWP-100-A1 =', round((new_y1_pred[0]), 2))
 
-new_y2_pred = regressor2.predict(pred_data)
-print('GWP-100-A2 =', round((new_y2_pred[0]),2))
+    new_y2_pred = regressor2.predict(pred_data)
+    print('GWP-100-A2 =', round((new_y2_pred[0]), 2))
 
-new_y3_pred = regressor3.predict(pred_data)
-print('GWP-100-A3 =', round((new_y3_pred[0]),2))
+    new_y3_pred = regressor3.predict(pred_data)
+    print('GWP-100-A3 =', round((new_y3_pred[0]), 2))
 
-print('Sum GWP-100-A1,A2,A3 = ', round(new_y1_pred[0]+new_y2_pred[0]+new_y3_pred[0], 2))
-
-
-
-
-
-
-
-
+    print('Sum GWP-100-A1,A2,A3 = ',
+          round(new_y1_pred[0] + new_y2_pred[0] + new_y3_pred[0], 2))
