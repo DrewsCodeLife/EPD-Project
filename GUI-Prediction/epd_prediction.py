@@ -87,7 +87,7 @@ regr3 = RandomForestRegressor()
 #X_test = sc.transform(X_test)#
 
 # 训练随机森林解决回归问题
-def runPrediction(pred_data=None):
+def runPrediction(pred_data=None, result_queue=None):
     from sklearn.ensemble import RandomForestRegressor
 
     regressor = RandomForestRegressor(n_estimators=200, random_state=0)
@@ -115,6 +115,11 @@ def runPrediction(pred_data=None):
 
     new_y3_pred = regressor3.predict(pred_data)
     print('GWP-100-A3 =', round((new_y3_pred[0]), 2))
+    
+    result_queue.put((new_y_pred[0],
+                      new_y1_pred[0],
+                      new_y2_pred[0],
+                      new_y3_pred[0]))
 
     print('Sum GWP-100-A1,A2,A3 = ',
           round(new_y1_pred[0] + new_y2_pred[0] + new_y3_pred[0], 2))

@@ -8,7 +8,11 @@ Created on Sat Apr 13 11:32:41 2024
 import customtkinter as ctk
 import epd_prediction as epd
 import pandas as pd
+import threading
+import queue
 from CTkListbox import CTkListbox
+
+ctk.set_appearance_mode("dark")
 
 # We can scan this state matches list to find the column name
 #   that matches our desired state
@@ -34,7 +38,8 @@ stateMatches = [
     ("state_SC", "South Carolina"),       ("state_TN", "Tennessee"),
     ("state_TX", "Texas"),                ("state_UT", "Utah"),
     ("state_VA", "Virginia"),             ("state_WA", "Washington"),
-    ("state_WI", "Wisconsin"),            ("state_WY", "Wyoming")
+    ("state_WI", "Wisconsin"),            ("state_WY", "Wyoming"),
+    ("NA", "Not listed")
 ]
 
 # State list used for populating listbox options
@@ -46,7 +51,7 @@ stateList = [
     "North Carolina", "North Dakota", "Nebraska", "New Hampshire",
     "New Jersey", "New Mexico", "Nevada", "New York", "Ohio", "Oklahoma",
     "Oregon", "Pennsylvania", "South Carolina", "Tennessee", "Texas", "Utah",
-    "Virginia", "Washington", "Wisconsin", "Wyoming"
+    "Virginia", "Washington", "Wisconsin", "Wyoming", "Not listed"
 ]
 
 # Performance grade list used for populating listbox options
@@ -56,7 +61,7 @@ pgList = [
     "PG_PG 58S-28 ", "PG_PG 58V-34 ", "PG_PG 64-10 ", "PG_PG 64-16 ",
     "PG_PG 64-22 ", "PG_PG 64-28 ", "PG_PG 64-34 ", "PG_PG 64E-28 ",
     "PG_PG 64H-22 ", "PG_PG 64S-22 ", "PG_PG 67-22 ", "PG_PG 70-10 ",
-    "PG_PG 70-22 ", "PG_PG 70-22 M.", "PG_PG 70-28 ", "PG_PG 76-22 ",
+    "PG_PG 70-22 ", "PG_PG 70-22 M", "PG_PG 70-28 ", "PG_PG 76-22 ",
     "PG_PG 76-28 ", "PG_PG 76-34 ", "PG_PG 82-22 "
 ]
 
@@ -113,6 +118,13 @@ data.at[0, "Binder_content"] = 0
 data.at[0, "lime"] = 0
 data.at[0, "Agg_content"] = 100
 
+result_queue = queue.Queue()
+
+gwpSum = None
+gwpA1 = None
+gwpA2 = None
+gwpA3 = None
+
 
 def findStateMatch(stateName):
     for code, name in stateMatches:
@@ -120,19 +132,60 @@ def findStateMatch(stateName):
             return code
         
 
+class missingDataPopup(ctk.CTkToplevel):
+    def __init__(self, missing, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.geometry("400x300")
+        
+        print("Missing: " + str(missing))
+        
+        missingStrings = ""
+        
+        while len(missing) > 0:
+            missingStrings = missingStrings + ", " + str(missing.pop())
+        
+        missingStrings = missingStrings[2:]
+        
+        print("Missing Strings: " + missingStrings)
+        
+        self.missingLabel = ctk.CTkLabel(
+            self,
+            text="Missing values for: " + missingStrings,
+            wraplength=300)
+        self.missingLabel.place(relx=.5, rely=.5, anchor=ctk.CENTER)
+        
+        self.after(10, self.lift)
+
+
 class mainApp(ctk.CTkFrame):
     def __init__(self, parent, *args, **kwargs):
         ctk.CTkFrame.__init__(self, parent, *args, **kwargs)
         self.parent = parent
         
-        self.leftFrame = ctk.CTkFrame(self, height=720, width=420)
-        self.leftFrame.pack(side="left", padx=5, expand=True)
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=1)
         
-        self.middleFrame = ctk.CTkFrame(self, height=720, width=420)
-        self.middleFrame.pack(side="left", padx=5, expand=True)
+        self.leftFrame = ctk.CTkFrame(self, height=720, width=350)
+        self.leftFrame.grid(row=0, column=0, sticky="nsew")
         
-        self.rightFrame = ctk.CTkFrame(self, height=720, width=420)
-        self.rightFrame.pack(side="left", padx=5, expand=True)
+        self.rightFrame = ctk.CTkFrame(self, height=720, width=350)
+        self.rightFrame.grid(row=0, column=1, sticky="nsew")
+        self.rightFrame.grid_rowconfigure(0, weight=1)
+        self.rightFrame.grid_rowconfigure(1, weight=1)
+        self.rightFrame.grid_columnconfigure(0, weight=1)
+        self.rightFrame.grid_columnconfigure(1, weight=1)
+        
+        self.rightFrame.topFrame = ctk.CTkFrame(self.rightFrame,
+                                                width=300,
+                                                height=200)
+        self.rightFrame.topFrame.grid(row=0, column=0)
+        self.rightFrame.topFrame.grid_propagate(False)
+        
+        self.rightFrame.bottomFrame = ctk.CTkFrame(self.rightFrame,
+                                                   width=300,
+                                                   height=200)
+        self.rightFrame.bottomFrame.grid(row=1, column=0)
+        self.rightFrame.bottomFrame.grid_propagate(False)
         
         # CATEGORICAL DATA INPUT (left frame)
         # State selection
@@ -209,16 +262,16 @@ class mainApp(ctk.CTkFrame):
         self.leftFrame.mixChoice.insert(0, "HMA")
         self.leftFrame.mixChoice.insert(1, "WMA")
         
-        self.leftFrame.binderChoice.insert(0, "GTR")
-        self.leftFrame.binderChoice.insert(1, "PPA")
-        self.leftFrame.binderChoice.insert(2, "SBS")
-        self.leftFrame.binderChoice.insert(3, "Unmodified")
+        self.leftFrame.binderChoice.insert(0, "Unmodified")
+        self.leftFrame.binderChoice.insert(1, "GTR")
+        self.leftFrame.binderChoice.insert(2, "PPA")
+        self.leftFrame.binderChoice.insert(3, "SBS")
         
-        self.leftFrame.mdChoice.insert(0, "Hveem")
+        self.leftFrame.mdChoice.insert(0, "Superpave")
         self.leftFrame.mdChoice.insert(1, "Marshall")
-        self.leftFrame.mdChoice.insert(2, "Performance")
-        self.leftFrame.mdChoice.insert(3, "Superpave")
-        self.leftFrame.mdChoice.insert(5, "Other")
+        self.leftFrame.mdChoice.insert(2, "Hveem")
+        self.leftFrame.mdChoice.insert(3, "Performance")
+        self.leftFrame.mdChoice.insert(4, "Other")
         
         self.leftFrame.gradChoice.insert(0, "Dense")
         self.leftFrame.gradChoice.insert(1, "Gap")
@@ -239,80 +292,231 @@ class mainApp(ctk.CTkFrame):
         
         # NUMERIC DATA INPUT (middle frame)
         # NMAS
-        self.middleFrame.nmasEntry = ctk.CTkEntry(
-            self.middleFrame,
+        self.rightFrame.topFrame.nmasEntry = ctk.CTkEntry(
+            self.rightFrame.topFrame,
             placeholder_text="Enter NMAS (inches)...")
-        self.middleFrame.nmasEntry.grid(row=0, column=0, sticky="NW")
+        self.rightFrame.topFrame.nmasEntry.grid(row=0,
+                                                column=0,
+                                                padx=5,
+                                                pady=2.5,
+                                                sticky="NW")
         
-        self.middleFrame.nmasLabel = ctk.CTkLabel(
-            self.middleFrame,
-            text="NMAS: " + str(data.at[0, "NMAS"]))
-        self.middleFrame.nmasLabel.grid(row=0, column=1, sticky="NW")
+        self.rightFrame.topFrame.nmasLabel = ctk.CTkLabel(
+            self.rightFrame.topFrame,
+            text="NMAS (in): " + str(data.at[0, "NMAS"]))
+        self.rightFrame.topFrame.nmasLabel.grid(row=0,
+                                                column=1,
+                                                padx=5,
+                                                pady=2.5,
+                                                sticky="NW")
         
         # RAP Content
-        self.middleFrame.rapEntry = ctk.CTkEntry(
-            self.middleFrame,
+        self.rightFrame.topFrame.rapEntry = ctk.CTkEntry(
+            self.rightFrame.topFrame,
             placeholder_text="Enter RAP (%)...")
-        self.middleFrame.rapEntry.grid(row=1, column=0, sticky="NW")
+        self.rightFrame.topFrame.rapEntry.grid(row=1,
+                                               column=0,
+                                               padx=5,
+                                               pady=2.5,
+                                               sticky="NW")
         
-        self.middleFrame.rapLabel = ctk.CTkLabel(
-            self.middleFrame,
-            text="RAP %: " + str(data.at[0, "RAP_content"]))
-        self.middleFrame.rapLabel.grid(row=1, column=1, sticky="NW")
+        self.rightFrame.topFrame.rapLabel = ctk.CTkLabel(
+            self.rightFrame.topFrame,
+            text="RAP       %: " + str(data.at[0, "RAP_content"]))
+        self.rightFrame.topFrame.rapLabel.grid(row=1,
+                                               column=1,
+                                               padx=5,
+                                               pady=2.5,
+                                               sticky="NW")
         
         # RAS Content
-        self.middleFrame.rasEntry = ctk.CTkEntry(
-            self.middleFrame,
+        self.rightFrame.topFrame.rasEntry = ctk.CTkEntry(
+            self.rightFrame.topFrame,
             placeholder_text="Enter RAS (%)...")
-        self.middleFrame.rasEntry.grid(row=2, column=0, sticky="NW")
+        self.rightFrame.topFrame.rasEntry.grid(row=2,
+                                               column=0,
+                                               padx=5,
+                                               pady=2.5,
+                                               sticky="NW")
         
-        self.middleFrame.rasLabel = ctk.CTkLabel(
-            self.middleFrame,
-            text="RAS %: " + str(data.at[0, "RAS_content"]))
-        self.middleFrame.rasLabel.grid(row=2, column=1, sticky="NW")
+        self.rightFrame.topFrame.rasLabel = ctk.CTkLabel(
+            self.rightFrame.topFrame,
+            text="RAS       %: " + str(data.at[0, "RAS_content"]))
+        self.rightFrame.topFrame.rasLabel.grid(row=2,
+                                               column=1,
+                                               padx=5,
+                                               pady=2.5,
+                                               sticky="NW")
         
         # Binder Content
-        self.middleFrame.binderEntry = ctk.CTkEntry(
-            self.middleFrame,
+        self.rightFrame.topFrame.binderEntry = ctk.CTkEntry(
+            self.rightFrame.topFrame,
             placeholder_text="Enter Binder (%)...")
-        self.middleFrame.binderEntry.grid(row=3, column=0, sticky="NW")
+        self.rightFrame.topFrame.binderEntry.grid(row=3,
+                                                  column=0,
+                                                  padx=5,
+                                                  pady=2.5,
+                                                  sticky="NW")
         
-        self.middleFrame.binderLabel = ctk.CTkLabel(
-            self.middleFrame,
-            text="Binder %: " + str(data.at[0, "Binder_content"]))
-        self.middleFrame.binderLabel.grid(row=3, column=1, sticky="NW")
+        self.rightFrame.topFrame.binderLabel = ctk.CTkLabel(
+            self.rightFrame.topFrame,
+            text="Binder    %: " + str(data.at[0, "Binder_content"]))
+        self.rightFrame.topFrame.binderLabel.grid(row=3,
+                                                  column=1,
+                                                  padx=5,
+                                                  pady=2.5,
+                                                  sticky="NW")
         
         # Lime Content
-        self.middleFrame.limeEntry = ctk.CTkEntry(
-            self.middleFrame,
+        self.rightFrame.topFrame.limeEntry = ctk.CTkEntry(
+            self.rightFrame.topFrame,
             placeholder_text="Enter Lime (%)...")
-        self.middleFrame.limeEntry.grid(row=4, column=0, sticky="NW")
+        self.rightFrame.topFrame.limeEntry.grid(row=4,
+                                                column=0,
+                                                padx=5,
+                                                pady=2.5,
+                                                sticky="NW")
         
-        self.middleFrame.limeLabel = ctk.CTkLabel(
-            self.middleFrame,
-            text="Lime %: " + str(data.at[0, "lime"]))
-        self.middleFrame.limeLabel.grid(row=4, column=1, sticky="NW")
+        self.rightFrame.topFrame.limeLabel = ctk.CTkLabel(
+            self.rightFrame.topFrame,
+            text="Lime      %: " + str(data.at[0, "lime"]))
+        self.rightFrame.topFrame.limeLabel.grid(row=4,
+                                                column=1,
+                                                padx=5,
+                                                pady=2.5,
+                                                sticky="NW")
         
         # Aggregate Content
-        self.middleFrame.aggLabel = ctk.CTkLabel(
-            self.middleFrame,
+        self.rightFrame.topFrame.aggLabel = ctk.CTkLabel(
+            self.rightFrame.topFrame,
             text="Aggregate %: " + str(data.at[0, "Agg_content"]))
-        self.middleFrame.aggLabel.grid(row=5, column=1, stick="NW")
+        self.rightFrame.topFrame.aggLabel.grid(row=5,
+                                               column=1,
+                                               padx=5,
+                                               pady=2.5,
+                                               sticky="NW")
+        
+        self.rightFrame.topFrame.numInstruct = ctk.CTkLabel(
+            self.rightFrame.topFrame,
+            text="(Press enter to submit)",
+            font=("Segoe UI", 12, "bold"))
+        self.rightFrame.topFrame.numInstruct.grid(row=5,
+                                                  column=0,
+                                                  padx=5,
+                                                  pady=2.5,
+                                                  sticky="NW")
         
         # SUMMARY AND RESULTS (right frame)
-        self.rightFrame.runButton = ctk.CTkButton(
-            self.rightFrame,
+        self.rightFrame.bottomFrame.runButton = ctk.CTkButton(
+            self.rightFrame.bottomFrame,
             text="Predict",
             command=self.runPred)
-        self.rightFrame.runButton.grid(row=0, column=0)
+        self.rightFrame.bottomFrame.runButton.grid(row=0,
+                                                   column=0,
+                                                   padx=5,
+                                                   sticky="NW")
+        
+        self.rightFrame.bottomFrame.gwpA1Label = ctk.CTkLabel(
+            self.rightFrame.bottomFrame,
+            text="Predicted GWP from materials: N/A")
+        self.rightFrame.bottomFrame.gwpA1Label.grid(row=1,
+                                                    column=0,
+                                                    padx=5,
+                                                    sticky="NW")
+        
+        self.rightFrame.bottomFrame.gwpA2Label = ctk.CTkLabel(
+            self.rightFrame.bottomFrame,
+            text="Predicted GWP from transportation: N/A")
+        self.rightFrame.bottomFrame.gwpA2Label.grid(row=2,
+                                                    column=0,
+                                                    padx=5,
+                                                    sticky="NW")
+        
+        self.rightFrame.bottomFrame.gwpA3Label = ctk.CTkLabel(
+            self.rightFrame.bottomFrame,
+            text="Predicted GWP from production: N/A")
+        self.rightFrame.bottomFrame.gwpA3Label.grid(row=3,
+                                                    column=0,
+                                                    padx=5,
+                                                    sticky="NW")
+        
+        self.rightFrame.bottomFrame.gwpTotalLabel = ctk.CTkLabel(
+            self.rightFrame.bottomFrame,
+            text="Predicted total GWP output: N/A")
+        self.rightFrame.bottomFrame.gwpTotalLabel.grid(row=4,
+                                                       column=0,
+                                                       padx=5,
+                                                       sticky="NW")
+        
+        self.rightFrame.bottomFrame.gwpCumul = ctk.CTkLabel(
+            self.rightFrame.bottomFrame,
+            text="Sum of materials, transport, and production: N/A")
+        self.rightFrame.bottomFrame.gwpCumul.grid(row=5,
+                                                  column=0,
+                                                  padx=5,
+                                                  sticky="NW")
+        
+        self.rightFrame.bottomFrame.unitLabel = ctk.CTkLabel(
+            self.rightFrame.bottomFrame,
+            text="(All values are in tons of CO2)",
+            font=("Segoe UI", 12, "bold"))
+        self.rightFrame.bottomFrame.unitLabel.grid(row=6,
+                                                   column=0,
+                                                   padx=5,
+                                                   sticky="NW")
         
     def runPred(self):
+        t = threading.Thread(
+            target=epd.runPrediction, args=(data, result_queue), daemon=True)
+        
         i = 0
+        isMissing = False
+        missingList = set()
         for i in range(0, 93):
-            if data.at[0, colNames[i]] == "NaN":
-                print("Handle lacking data")
-            else:
-                epd.runPrediction(data)
+            if str(data.at[0, colNames[i]]) == "nan":
+                if colNames[i][:6] == "state_":
+                    missingList.add("State")
+                elif colNames[i][:5] == "PG_PG":
+                    missingList.add("Performance Grade")
+                elif colNames[i][:5] == "Mix_t":
+                    missingList.add("Mix Type")
+                elif colNames[i][:5] == "mix_d":
+                    missingList.add("Mix Design")
+                elif colNames[i][:10] == "gradation_":
+                    missingList.add("Gradation Type")
+                else:
+                    missingList.add("Binder Type")
+                isMissing = True
+        if not isMissing:
+            if not t.is_alive():
+                t.start()
+                self.awaitResults(thread=t)
+        else:
+            missingDataWindow = missingDataPopup(missingList)
+            pass
+    
+    def awaitResults(self, thread=threading.Thread()):
+        if not thread.is_alive():
+            results = result_queue.get()
+            gwpSum, gwpA1, gwpA2, gwpA3 = results
+            
+            self.rightFrame.bottomFrame.gwpA1Label.configure(
+                text="Predicted GWP from materials: "
+                + str("{:.2f}".format(float(gwpA1))))
+            self.rightFrame.bottomFrame.gwpA2Label.configure(
+                text="Predicted GWP from transportation: "
+                + str("{:.2f}".format(float(gwpA2))))
+            self.rightFrame.bottomFrame.gwpA3Label.configure(
+                text="Predicted GWP from production: "
+                + str("{:.2f}".format(float(gwpA3))))
+            self.rightFrame.bottomFrame.gwpTotalLabel.configure(
+                text="Predicted total GWP output: "
+                + str("{:.2f}".format(float(gwpSum))))
+            self.rightFrame.bottomFrame.gwpCumul.configure(
+                text="Sum of materials, transport, and production: "
+                + str("{:.2f}".format(float(gwpA1 + gwpA2 + gwpA3))))
+        else:
+            root.after(100, self.awaitResults)
         
     def submitMix(self, selectedMix):
         self.leftFrame.mixChosen.configure(
@@ -381,26 +585,33 @@ class mainApp(ctk.CTkFrame):
         
         matchedName = findStateMatch(selectedState)
         
-        for itr in colNames:
-            if itr[:6] == "state_":
-                if itr == matchedName:
-                    data.at[0, itr] = 1
-                else:
+        if matchedName != "NA":
+            for itr in colNames:
+                if itr[:6] == "state_":
+                    if itr == matchedName:
+                        data.at[0, itr] = 1
+                    else:
+                        data.at[0, itr] = 0
+        else:
+            # If matchedName == "NA", the state was not listed.
+            #   Reference category is 0 for all state columns
+            for itr in colNames:
+                if itr[:6] == "state_":
                     data.at[0, itr] = 0
     
     def clearEntries(self, event):
-        newVal = self.middleFrame.nmasEntry.get()
+        newVal = self.rightFrame.topFrame.nmasEntry.get()
         if newVal != "":
             try:
                 data.at[0, "NMAS"] = abs(float(newVal))
-                self.middleFrame.nmasEntry.delete(0, 'end')
+                self.rightFrame.topFrame.nmasEntry.delete(0, 'end')
             except ValueError:
                 print("Do something: nmas")
         
-        newVal = self.middleFrame.rapEntry.get()
+        newVal = self.rightFrame.topFrame.rapEntry.get()
         if newVal != "":
             try:
-                newVal = abs(int(newVal))
+                newVal = abs(float(newVal))
                 agg_content = data.at[0, "Agg_content"]
                 
                 # If the new value is smaller than the old value, we add
@@ -410,20 +621,20 @@ class mainApp(ctk.CTkFrame):
                         + data.at[0, "RAP_content"]         \
                         - newVal
                     data.at[0, "RAP_content"] = newVal
-                    self.middleFrame.rapEntry.delete(0, 'end')
+                    self.rightFrame.topFrame.rapEntry.delete(0, 'end')
                 elif (agg_content + data.at[0, "RAP_content"] - newVal) >= 0:
                     data.at[0, "Agg_content"] = agg_content \
                         + data.at[0, "RAP_content"]           \
                         - newVal
                     data.at[0, "RAP_content"] = newVal
-                    self.middleFrame.rapEntry.delete(0, 'end')
+                    self.rightFrame.topFrame.rapEntry.delete(0, 'end')
             except ValueError:
                 print("Do something: rap")
         
-        newVal = self.middleFrame.rasEntry.get()
+        newVal = self.rightFrame.topFrame.rasEntry.get()
         if newVal != "":
             try:
-                newVal = abs(int(newVal))
+                newVal = abs(float(newVal))
                 agg_content = data.at[0, "Agg_content"]
                 
                 if newVal < data.at[0, "RAS_content"]:
@@ -431,20 +642,20 @@ class mainApp(ctk.CTkFrame):
                         + data.at[0, "RAS_content"]         \
                         - newVal
                     data.at[0, "RAS_content"] = newVal
-                    self.middleFrame.rasEntry.delete(0, 'end')
+                    self.rightFrame.topFrame.rasEntry.delete(0, 'end')
                 elif (agg_content + data.at[0, "RAS_content"] - newVal) >= 0:
                     data.at[0, "Agg_content"] = agg_content \
                         + data.at[0, "RAS_content"]         \
                         - newVal
                     data.at[0, "RAS_content"] = newVal
-                    self.middleFrame.rasEntry.delete(0, 'end')
+                    self.rightFrame.topFrame.rasEntry.delete(0, 'end')
             except ValueError:
                 print("Do something: ras")
         
-        newVal = self.middleFrame.binderEntry.get()
+        newVal = self.rightFrame.topFrame.binderEntry.get()
         if newVal != "":
             try:
-                newVal = abs(int(newVal))
+                newVal = abs(float(newVal))
                 agg_content = data.at[0, "Agg_content"]
                 
                 if newVal < data.at[0, "Binder_content"]:
@@ -452,21 +663,21 @@ class mainApp(ctk.CTkFrame):
                         + data.at[0, "Binder_content"]      \
                         - newVal
                     data.at[0, "Binder_content"] = newVal
-                    self.middleFrame.binderEntry.delete(0, 'end')
+                    self.rightFrame.topFrame.binderEntry.delete(0, 'end')
                 elif (agg_content + data.at[0, "Binder_content"] - newVal) \
                         >= 0:
                     data.at[0, "Agg_content"] = agg_content \
                         + data.at[0, "Binder_content"]      \
                         - newVal
                     data.at[0, "Binder_content"] = newVal
-                    self.middleFrame.binderEntry.delete(0, 'end')
+                    self.rightFrame.topFrame.binderEntry.delete(0, 'end')
             except ValueError:
                 print("Do something: binder")
         
-        newVal = self.middleFrame.limeEntry.get()
+        newVal = self.rightFrame.topFrame.limeEntry.get()
         if newVal != "":
             try:
-                newVal = abs(int(newVal))
+                newVal = abs(float(newVal))
                 agg_content = data.at[0, "Agg_content"]
                 
                 if newVal < data.at[0, "lime"]:
@@ -474,27 +685,27 @@ class mainApp(ctk.CTkFrame):
                         + data.at[0, "lime"]      \
                         - newVal
                     data.at[0, "lime"] = newVal
-                    self.middleFrame.limeEntry.delete(0, 'end')
+                    self.rightFrame.topFrame.limeEntry.delete(0, 'end')
                 elif (agg_content + data.at[0, "lime"] - newVal) >= 0:
                     data.at[0, "Agg_content"] = agg_content \
                         + data.at[0, "lime"]                \
                         - newVal
                     data.at[0, "lime"] = newVal
-                    self.middleFrame.limeEntry.delete(0, 'end')
+                    self.rightFrame.topFrame.limeEntry.delete(0, 'end')
             except ValueError:
                 print("Do something: lime")
 
-        self.middleFrame.nmasLabel.configure(
-            text="NMAS: " + str(data.at[0, "NMAS"]))
-        self.middleFrame.rapLabel.configure(
-            text="RAP %: " + str(data.at[0, "RAP_content"]))
-        self.middleFrame.rasLabel.configure(
-            text="RAS %: " + str(data.at[0, "RAS_content"]))
-        self.middleFrame.binderLabel.configure(
-            text="Binder %: " + str(data.at[0, "Binder_content"]))
-        self.middleFrame.limeLabel.configure(
-            text="Lime %: " + str(data.at[0, "lime"]))
-        self.middleFrame.aggLabel.configure(
+        self.rightFrame.topFrame.nmasLabel.configure(
+            text="NMAS (in): " + str(data.at[0, "NMAS"]))
+        self.rightFrame.topFrame.rapLabel.configure(
+            text="RAP       %: " + str(data.at[0, "RAP_content"]))
+        self.rightFrame.topFrame.rasLabel.configure(
+            text="RAS       %: " + str(data.at[0, "RAS_content"]))
+        self.rightFrame.topFrame.binderLabel.configure(
+            text="Binder    %: " + str(data.at[0, "Binder_content"]))
+        self.rightFrame.topFrame.limeLabel.configure(
+            text="Lime      %: " + str(data.at[0, "lime"]))
+        self.rightFrame.topFrame.aggLabel.configure(
             text="Aggregate %: " + str(data.at[0, "Agg_content"]))
     
     def _quit(self):
@@ -508,9 +719,11 @@ def main():
 
 if __name__ == "__main__":
     root = ctk.CTk()
-    root.geometry("1280x720")
+    root.geometry("720x540")
+    root.resizable(False, False)
     
     app = mainApp(root)
+    
     app.pack(side="top", fill="both", expand=True)
     root.bind('<Return>', app.clearEntries)
     
