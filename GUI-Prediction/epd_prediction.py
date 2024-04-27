@@ -15,7 +15,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.decomposition import PCA
 # 导入数据
-dataset = pd.read_excel("EPD-data-3.18.xlsx")
+dataset = pd.read_pickle("pickled.pkl")
 
 # 计算25th和75th分位数的值
 # 计算pocp_total的25th和75th分位数的值
@@ -105,21 +105,21 @@ def runPrediction(pred_data=None, result_queue=None):
 
     # pred_data = pd.read_excel("EPD-prediction.xlsx")
     new_y_pred = regressor.predict(pred_data)
-    print('GWP-100-Total=', round((new_y_pred[0]), 2))
+    # print('GWP-100-Total=', round((new_y_pred[0]), 2))
 
     new_y1_pred = regressor1.predict(pred_data)
-    print('GWP-100-A1 =', round((new_y1_pred[0]), 2))
+    # print('GWP-100-A1 =', round((new_y1_pred[0]), 2))
 
     new_y2_pred = regressor2.predict(pred_data)
-    print('GWP-100-A2 =', round((new_y2_pred[0]), 2))
+    # print('GWP-100-A2 =', round((new_y2_pred[0]), 2))
 
     new_y3_pred = regressor3.predict(pred_data)
-    print('GWP-100-A3 =', round((new_y3_pred[0]), 2))
+    # print('GWP-100-A3 =', round((new_y3_pred[0]), 2))
     
     result_queue.put((new_y_pred[0],
                       new_y1_pred[0],
                       new_y2_pred[0],
                       new_y3_pred[0]))
 
-    print('Sum GWP-100-A1,A2,A3 = ',
-          round(new_y1_pred[0] + new_y2_pred[0] + new_y3_pred[0], 2))
+    # print('Sum GWP-100-A1,A2,A3 = ',
+    #       round(new_y1_pred[0] + new_y2_pred[0] + new_y3_pred[0], 2))
