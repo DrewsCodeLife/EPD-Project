@@ -8,6 +8,7 @@ Created on Sat Apr 13 11:32:41 2024
 import customtkinter as ctk
 import epd_prediction as epd
 import pandas as pd
+import tooltipGen as ttg
 import threading
 import queue
 from CTkListbox import CTkListbox
@@ -177,13 +178,13 @@ class mainApp(ctk.CTkFrame):
         
         self.rightFrame.topFrame = ctk.CTkFrame(self.rightFrame,
                                                 width=300,
-                                                height=200)
+                                                height=210)
         self.rightFrame.topFrame.grid(row=0, column=0)
         self.rightFrame.topFrame.grid_propagate(False)
         
         self.rightFrame.bottomFrame = ctk.CTkFrame(self.rightFrame,
                                                    width=300,
-                                                   height=200)
+                                                   height=220)
         self.rightFrame.bottomFrame.grid(row=1, column=0)
         self.rightFrame.bottomFrame.grid_propagate(False)
         
@@ -291,11 +292,31 @@ class mainApp(ctk.CTkFrame):
             i = i + 1
         
         # NUMERIC DATA INPUT (middle frame)
+        self.rightFrame.topFrame.numInstruct = ctk.CTkLabel(
+            self.rightFrame.topFrame,
+            text="(Press Enter to Submit)",
+            font=("Segoe UI", 12, "bold"))
+        self.rightFrame.topFrame.numInstruct.grid(row=0,
+                                                  column=0,
+                                                  padx=5,
+                                                  pady=2.5,
+                                                  sticky="NW")
+        
+        # Aggregate Content
+        self.rightFrame.topFrame.aggLabel = ctk.CTkLabel(
+            self.rightFrame.topFrame,
+            text="Aggregate %: " + str(data.at[0, "Agg_content"]))
+        self.rightFrame.topFrame.aggLabel.grid(row=0,
+                                               column=1,
+                                               padx=5,
+                                               pady=2.5,
+                                               sticky="NW")
+        
         # NMAS
         self.rightFrame.topFrame.nmasEntry = ctk.CTkEntry(
             self.rightFrame.topFrame,
             placeholder_text="Enter NMAS (inches)...")
-        self.rightFrame.topFrame.nmasEntry.grid(row=0,
+        self.rightFrame.topFrame.nmasEntry.grid(row=1,
                                                 column=0,
                                                 padx=5,
                                                 pady=2.5,
@@ -304,7 +325,7 @@ class mainApp(ctk.CTkFrame):
         self.rightFrame.topFrame.nmasLabel = ctk.CTkLabel(
             self.rightFrame.topFrame,
             text="NMAS (in): " + str(data.at[0, "NMAS"]))
-        self.rightFrame.topFrame.nmasLabel.grid(row=0,
+        self.rightFrame.topFrame.nmasLabel.grid(row=1,
                                                 column=1,
                                                 padx=5,
                                                 pady=2.5,
@@ -314,7 +335,7 @@ class mainApp(ctk.CTkFrame):
         self.rightFrame.topFrame.rapEntry = ctk.CTkEntry(
             self.rightFrame.topFrame,
             placeholder_text="Enter RAP (%)...")
-        self.rightFrame.topFrame.rapEntry.grid(row=1,
+        self.rightFrame.topFrame.rapEntry.grid(row=2,
                                                column=0,
                                                padx=5,
                                                pady=2.5,
@@ -323,7 +344,7 @@ class mainApp(ctk.CTkFrame):
         self.rightFrame.topFrame.rapLabel = ctk.CTkLabel(
             self.rightFrame.topFrame,
             text="RAP       %: " + str(data.at[0, "RAP_content"]))
-        self.rightFrame.topFrame.rapLabel.grid(row=1,
+        self.rightFrame.topFrame.rapLabel.grid(row=2,
                                                column=1,
                                                padx=5,
                                                pady=2.5,
@@ -333,7 +354,7 @@ class mainApp(ctk.CTkFrame):
         self.rightFrame.topFrame.rasEntry = ctk.CTkEntry(
             self.rightFrame.topFrame,
             placeholder_text="Enter RAS (%)...")
-        self.rightFrame.topFrame.rasEntry.grid(row=2,
+        self.rightFrame.topFrame.rasEntry.grid(row=3,
                                                column=0,
                                                padx=5,
                                                pady=2.5,
@@ -342,7 +363,7 @@ class mainApp(ctk.CTkFrame):
         self.rightFrame.topFrame.rasLabel = ctk.CTkLabel(
             self.rightFrame.topFrame,
             text="RAS       %: " + str(data.at[0, "RAS_content"]))
-        self.rightFrame.topFrame.rasLabel.grid(row=2,
+        self.rightFrame.topFrame.rasLabel.grid(row=3,
                                                column=1,
                                                padx=5,
                                                pady=2.5,
@@ -352,7 +373,7 @@ class mainApp(ctk.CTkFrame):
         self.rightFrame.topFrame.binderEntry = ctk.CTkEntry(
             self.rightFrame.topFrame,
             placeholder_text="Enter Binder (%)...")
-        self.rightFrame.topFrame.binderEntry.grid(row=3,
+        self.rightFrame.topFrame.binderEntry.grid(row=4,
                                                   column=0,
                                                   padx=5,
                                                   pady=2.5,
@@ -361,7 +382,7 @@ class mainApp(ctk.CTkFrame):
         self.rightFrame.topFrame.binderLabel = ctk.CTkLabel(
             self.rightFrame.topFrame,
             text="Binder    %: " + str(data.at[0, "Binder_content"]))
-        self.rightFrame.topFrame.binderLabel.grid(row=3,
+        self.rightFrame.topFrame.binderLabel.grid(row=4,
                                                   column=1,
                                                   padx=5,
                                                   pady=2.5,
@@ -371,7 +392,7 @@ class mainApp(ctk.CTkFrame):
         self.rightFrame.topFrame.limeEntry = ctk.CTkEntry(
             self.rightFrame.topFrame,
             placeholder_text="Enter Lime (%)...")
-        self.rightFrame.topFrame.limeEntry.grid(row=4,
+        self.rightFrame.topFrame.limeEntry.grid(row=5,
                                                 column=0,
                                                 padx=5,
                                                 pady=2.5,
@@ -380,31 +401,11 @@ class mainApp(ctk.CTkFrame):
         self.rightFrame.topFrame.limeLabel = ctk.CTkLabel(
             self.rightFrame.topFrame,
             text="Lime      %: " + str(data.at[0, "lime"]))
-        self.rightFrame.topFrame.limeLabel.grid(row=4,
+        self.rightFrame.topFrame.limeLabel.grid(row=5,
                                                 column=1,
                                                 padx=5,
                                                 pady=2.5,
                                                 sticky="NW")
-        
-        # Aggregate Content
-        self.rightFrame.topFrame.aggLabel = ctk.CTkLabel(
-            self.rightFrame.topFrame,
-            text="Aggregate %: " + str(data.at[0, "Agg_content"]))
-        self.rightFrame.topFrame.aggLabel.grid(row=5,
-                                               column=1,
-                                               padx=5,
-                                               pady=2.5,
-                                               sticky="NW")
-        
-        self.rightFrame.topFrame.numInstruct = ctk.CTkLabel(
-            self.rightFrame.topFrame,
-            text="(Press enter to submit)",
-            font=("Segoe UI", 12, "bold"))
-        self.rightFrame.topFrame.numInstruct.grid(row=5,
-                                                  column=0,
-                                                  padx=5,
-                                                  pady=2.5,
-                                                  sticky="NW")
         
         # SUMMARY AND RESULTS (right frame)
         self.rightFrame.bottomFrame.runButton = ctk.CTkButton(
@@ -414,11 +415,12 @@ class mainApp(ctk.CTkFrame):
         self.rightFrame.bottomFrame.runButton.grid(row=0,
                                                    column=0,
                                                    padx=5,
+                                                   pady=2.5,
                                                    sticky="NW")
         
         self.rightFrame.bottomFrame.gwpA1Label = ctk.CTkLabel(
             self.rightFrame.bottomFrame,
-            text="Predicted GWP from materials: N/A")
+            text="Predicted GWP-100-A1: N/A")
         self.rightFrame.bottomFrame.gwpA1Label.grid(row=1,
                                                     column=0,
                                                     padx=5,
@@ -426,7 +428,7 @@ class mainApp(ctk.CTkFrame):
         
         self.rightFrame.bottomFrame.gwpA2Label = ctk.CTkLabel(
             self.rightFrame.bottomFrame,
-            text="Predicted GWP from transportation: N/A")
+            text="Predicted GWP-100-A2: N/A")
         self.rightFrame.bottomFrame.gwpA2Label.grid(row=2,
                                                     column=0,
                                                     padx=5,
@@ -434,31 +436,46 @@ class mainApp(ctk.CTkFrame):
         
         self.rightFrame.bottomFrame.gwpA3Label = ctk.CTkLabel(
             self.rightFrame.bottomFrame,
-            text="Predicted GWP from production: N/A")
+            text="Predicted GWP-100-A3: N/A")
         self.rightFrame.bottomFrame.gwpA3Label.grid(row=3,
                                                     column=0,
                                                     padx=5,
                                                     sticky="NW")
         
-        self.rightFrame.bottomFrame.gwpTotalLabel = ctk.CTkLabel(
-            self.rightFrame.bottomFrame,
-            text="Predicted total GWP output: N/A")
-        self.rightFrame.bottomFrame.gwpTotalLabel.grid(row=4,
-                                                       column=0,
-                                                       padx=5,
-                                                       sticky="NW")
-        
         self.rightFrame.bottomFrame.gwpCumul = ctk.CTkLabel(
             self.rightFrame.bottomFrame,
-            text="Sum of materials, transport, and production: N/A")
-        self.rightFrame.bottomFrame.gwpCumul.grid(row=5,
+            text="Sum of A1, A2, and A3: N/A")
+        self.rightFrame.bottomFrame.gwpCumul.grid(row=4,
                                                   column=0,
                                                   padx=5,
                                                   sticky="NW")
         
+        self.rightFrame.bottomFrame.gwpTotalLabel = ctk.CTkLabel(
+            self.rightFrame.bottomFrame,
+            text="Predicted sum of A1, A2, and A3: N/A")
+        self.rightFrame.bottomFrame.gwpTotalLabel.grid(row=5,
+                                                       column=0,
+                                                       padx=5,
+                                                       sticky="NW")
+        
+        self.rightFrame.bottomFrame.diffTip1 = ttg.CreateToolTip(
+            self.rightFrame.bottomFrame.gwpTotalLabel,
+            "This value is predicted separately from the other values, and"
+            " can be utilized to validate that the model is making accurate"
+            " predictions. This value should match the cumulative sum above.")
+        
+        self.rightFrame.bottomFrame.diffTip2 = ttg.CreateToolTip(
+            self.rightFrame.bottomFrame.gwpCumul,
+            "This value is generated by building a cumulative sum of the "
+            "predicted values for A1, A2, and A3. It should closely match"
+            " the value immediately below it, which is a separately "
+            "predicted total.")
+        
         self.rightFrame.bottomFrame.unitLabel = ctk.CTkLabel(
             self.rightFrame.bottomFrame,
-            text="(All values are in tons of CO2)",
+            text="All values are in kg of CO2 equivalence "
+                "per ton of asphalt mix",
+            wraplength=300,
             font=("Segoe UI", 12, "bold"))
         self.rightFrame.bottomFrame.unitLabel.grid(row=6,
                                                    column=0,
@@ -501,19 +518,19 @@ class mainApp(ctk.CTkFrame):
             gwpSum, gwpA1, gwpA2, gwpA3 = results
             
             self.rightFrame.bottomFrame.gwpA1Label.configure(
-                text="Predicted GWP from materials: "
+                text="Predicted GWP-100-A1: "
                 + str("{:.2f}".format(float(gwpA1))))
             self.rightFrame.bottomFrame.gwpA2Label.configure(
-                text="Predicted GWP from transportation: "
+                text="Predicted GWP-100-A2: "
                 + str("{:.2f}".format(float(gwpA2))))
             self.rightFrame.bottomFrame.gwpA3Label.configure(
-                text="Predicted GWP from production: "
+                text="Predicted GWP-100-A3: "
                 + str("{:.2f}".format(float(gwpA3))))
             self.rightFrame.bottomFrame.gwpTotalLabel.configure(
-                text="Predicted total GWP output: "
+                text="Predicted sum of A1, A2, and A3: "
                 + str("{:.2f}".format(float(gwpSum))))
             self.rightFrame.bottomFrame.gwpCumul.configure(
-                text="Sum of materials, transport, and production: "
+                text="Sum of A1, A2, and A3: "
                 + str("{:.2f}".format(float(gwpA1 + gwpA2 + gwpA3))))
         else:
             root.after(100, self.awaitResults)
