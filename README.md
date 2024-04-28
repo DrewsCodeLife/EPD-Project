@@ -8,4 +8,4 @@ However, the process of digitalization is time-consuming and constly. Modern too
 
 The goal of this app is to build a machine learning model with which an individual can provide various inputs regarding the desired asphalt mixture, and quickly receive a predicted GWP based on the data recorded in the US EPD database. Using this tool, asphalt producers and consumers will be able to quickly test different asphalt mixture models across different states in the United States of America, and in doing so can more easily derive an ideal mixture that balances performance with GWP output.
 
-[Find the current release here](https://github.com/DrewsCodeLife/EPD-Project/releases/tag/v0.2)
+[Find the current release here](https://github.com/DrewsCodeLife/EPD-Project/releases/tag/v1.0)
