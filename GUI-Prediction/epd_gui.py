@@ -163,6 +163,8 @@ class mainApp(ctk.CTkFrame):
         ctk.CTkFrame.__init__(self, parent, *args, **kwargs)
         self.parent = parent
         
+        self.winfo_toplevel().title("EPD")
+        
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
         
@@ -473,9 +475,9 @@ class mainApp(ctk.CTkFrame):
         
         self.rightFrame.bottomFrame.unitLabel = ctk.CTkLabel(
             self.rightFrame.bottomFrame,
-            text="All values are in kg of CO2 equivalence "
-                "per ton of asphalt mix",
+            text="All values are in kg of CO\u2082e per ton of asphalt mix",
             wraplength=300,
+            justify="left",
             font=("Segoe UI", 12, "bold"))
         self.rightFrame.bottomFrame.unitLabel.grid(row=6,
                                                    column=0,
